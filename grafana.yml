@@ -1,0 +1,50 @@
+
+
+    - name: Download Grafana GPG key
+      get_url:
+        url: https://rpm.grafana.com/gpg.key
+        dest: /tmp/gpg.key
+
+    - name: Import Grafana GPG key
+      shell: sudo rpm --import /tmp/gpg.key
+
+    - name: Add Grafana YUM Repository
+      copy:
+        content: |
+          [grafana]
+          name=grafana
+          baseurl=https://rpm.grafana.com
+          repo_gpgcheck=1
+          enabled=1
+          gpgcheck=1
+          gpgkey=https://rpm.grafana.com/gpg.key
+          sslverify=1
+          sslcacert=/etc/pki/tls/certs/ca-bundle.crt
+          exclude=*beta*
+        dest: /etc/yum.repos.d/grafana.repo
+      become_user: root
+
+    - name: Install Grafana via yum
+      yum:
+        name: grafana
+        state: present
+      become_user: root
+
+    - name: Copy Grafana File - grafana.ini
+      template:
+        src: "{{ansible_roles_path}}/files/grafana/grafana.ini.j2"
+        dest: "/etc/grafana/grafana.ini"      
+      become_user: root
+
+    #- name: Copy Grafana DB File - grafana.db
+    #  template:
+    #    src: /srv/shared-mgmt/external-softwares/grafana.db
+    #    dest: "/var/lib/grafana/grafana.db"
+    #  become_user: root
+
+    - name: Start and Enable Grafana Service
+      systemd:
+        name: grafana-server
+        state: started
+        enabled: yes
+      become_user: root
